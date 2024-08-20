@@ -2,7 +2,7 @@ import axios from 'axios';
 import rateLimit from 'axios-rate-limit';
 import { encrypt, decrypt } from './encryption';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://api.adhd2e.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.adhd2e.com';
 
 const api = rateLimit(axios.create({
   baseURL: API_BASE_URL,
