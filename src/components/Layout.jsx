@@ -4,8 +4,8 @@ import ThemeToggle from './ThemeToggle';
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col dark:bg-gray-900 dark:text-white">
-      <header className="bg-blue-600 dark:bg-blue-800 text-white p-4">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <header className="bg-primary text-primary-foreground p-4">
         <nav className="flex justify-between items-center">
           <ul className="flex space-x-4">
             <li><Link to="/" className="hover:underline">Home</Link></li>
@@ -16,10 +16,10 @@ const Layout = () => {
           <ThemeToggle />
         </nav>
       </header>
-      <main className="flex-grow container mx-auto p-4">
+      <main id="main-content" className="flex-grow container mx-auto p-4">
         <Outlet />
       </main>
-      <footer className="bg-gray-200 dark:bg-gray-800 p-4 text-center">
+      <footer className="bg-secondary text-secondary-foreground p-4 text-center">
         <p>&copy; 2023 ADHD 2e AI Agent System</p>
       </footer>
     </div>
