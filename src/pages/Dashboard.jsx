@@ -8,6 +8,7 @@ const TaskList = lazy(() => import('../components/TaskList'));
 const AIRecommendations = lazy(() => import('../components/AIAgent/AIRecommendations'));
 const TaskChart = lazy(() => import('../components/DataVisualization/TaskChart'));
 const FeedbackForm = lazy(() => import('../components/FeedbackForm'));
+const ProgressTracker = lazy(() => import('../components/ProgressTracker'));
 
 const Dashboard = () => {
   const { data: tasks, isLoading, error } = useQuery({
@@ -44,6 +45,9 @@ const Dashboard = () => {
     <ResponsiveLayout>
       <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Suspense fallback={<div>Loading progress...</div>}>
+          <ProgressTracker />
+        </Suspense>
         <Suspense fallback={<div>Loading tasks...</div>}>
           <div>
             <TaskList />
