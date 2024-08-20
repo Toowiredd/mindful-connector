@@ -21,10 +21,37 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Add a response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+        const { token } = response.data;
+        localStorage.setItem('authToken', token);
+        originalRequest.headers['Authorization'] = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, logout the user
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authService = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   logout: () => api.post('/auth/logout'),
+  refreshToken: () => api.post('/auth/refresh'),
 };
 
 export const taskService = {

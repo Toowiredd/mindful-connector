@@ -1,38 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService } from '../services/api';
+import { Button } from "@/components/ui/button"
+import { toast } from 'sonner';
 
 const TaskList = () => {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  const { data: tasks, isLoading, error } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: taskService.getTasks,
+  });
 
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const response = await taskService.getTasks();
-      setTasks(response.data);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to fetch tasks');
-      setLoading(false);
-    }
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, task }) => taskService.updateTask(id, task),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['tasks']);
+      toast.success('Task updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update task');
+    },
+  });
+
+  const handleTaskComplete = (id) => {
+    updateTaskMutation.mutate({ id, task: { completed: true } });
   };
 
-  const handleTaskComplete = async (id) => {
-    try {
-      await taskService.updateTask(id, { completed: true });
-      fetchTasks();
-    } catch (err) {
-      setError('Failed to update task');
-    }
-  };
-
-  if (loading) return <div>Loading tasks...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (isLoading) return <div>Loading tasks...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div className="space-y-4">
@@ -41,12 +37,12 @@ const TaskList = () => {
         <div key={task.id} className="bg-white p-4 rounded shadow flex justify-between items-center">
           <span className={task.completed ? 'line-through' : ''}>{task.title}</span>
           {!task.completed && (
-            <button
+            <Button
               onClick={() => handleTaskComplete(task.id)}
-              className="bg-green-500 text-white px-2 py-1 rounded"
+              disabled={updateTaskMutation.isLoading}
             >
               Complete
-            </button>
+            </Button>
           )}
         </div>
       ))}

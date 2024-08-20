@@ -1,29 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { aiService } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const AIRecommendations = () => {
-  const [recommendations, setRecommendations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: recommendations, isLoading, error } = useQuery({
+    queryKey: ['aiRecommendations'],
+    queryFn: aiService.getRecommendations,
+  });
 
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        const response = await aiService.getRecommendations();
-        setRecommendations(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch AI recommendations');
-        setLoading(false);
-      }
-    };
-
-    fetchRecommendations();
-  }, []);
-
-  if (loading) return <div>Loading recommendations...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (isLoading) return <div>Loading recommendations...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div className="space-y-4">
