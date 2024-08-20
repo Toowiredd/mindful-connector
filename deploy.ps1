@@ -1,5 +1,28 @@
 # PowerShell Deployment Script for Windows 11
 
+# Check for .env file
+if (!(Test-Path .env)) {
+    Write-Error "Error: .env file not found. Please run initial_setup.ps1 first."
+    exit 1
+}
+
+# Load environment variables
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^(.+)=(.+)$') {
+        Set-Item -Path Env:$($Matches[1]) -Value $Matches[2]
+    }
+}
+
+# Function to print colored output
+function Print-Status($message, $success) {
+    if ($success) {
+        Write-Host $message -ForegroundColor Green
+    } else {
+        Write-Host $message -ForegroundColor Red
+        exit 1
+    }
+}
+
 # Check if doctl is installed
 if (!(Get-Command doctl -ErrorAction SilentlyContinue)) {
     Write-Error "doctl is not installed. Please install it first."
@@ -12,52 +35,16 @@ if (!(Get-Command kubectl -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# Configuration
-$CLUSTER_NAME = "adhd2e-cluster"
-$REGION = "nyc1"
-$NODE_POOL_NAME = "worker-pool"
-$NODE_SIZE = "s-2vcpu-4gb"
-$NODE_COUNT = 3
-$SPACES_NAME = "adhd2e-backups"
-$REGISTRY_NAME = "adhd2e-registry"
-
-# Function to print colored output
-function Print-Status($message, $success) {
-    if ($success) {
-        Write-Host $message -ForegroundColor Green
-    } else {
-        Write-Host $message -ForegroundColor Red
-        exit 1
-    }
-}
-
 # Authenticate with DigitalOcean
-Write-Host "Ensuring DigitalOcean authentication..."
-doctl account get | Out-Null
+Write-Host "Authenticating with DigitalOcean..."
+doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
 Print-Status "DigitalOcean authentication" $?
-
-# Create Kubernetes cluster
-Write-Host "Creating Kubernetes cluster..."
-doctl kubernetes cluster create $CLUSTER_NAME `
-    --region $REGION `
-    --node-pool "name=$NODE_POOL_NAME;size=$NODE_SIZE;count=$NODE_COUNT" `
-    --wait
-Print-Status "Kubernetes cluster creation" $?
 
 # Configure kubectl
 Write-Host "Configuring kubectl..."
-doctl kubernetes cluster kubeconfig save $CLUSTER_NAME
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:KUBE_CONFIG)) | Out-File -FilePath kubeconfig.yaml -Encoding utf8
+$env:KUBECONFIG = ".\kubeconfig.yaml"
 Print-Status "kubectl configuration" $?
-
-# Create DigitalOcean Spaces for backups
-Write-Host "Creating DigitalOcean Spaces for backups..."
-doctl spaces create $SPACES_NAME --region $REGION
-Print-Status "DigitalOcean Spaces creation" $?
-
-# Create DigitalOcean Container Registry
-Write-Host "Creating DigitalOcean Container Registry..."
-doctl registry create $REGISTRY_NAME
-Print-Status "Container Registry creation" $?
 
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
@@ -82,14 +69,9 @@ Print-Status "Deployment readiness" $?
 
 # Set up DigitalOcean Monitoring
 Write-Host "Setting up DigitalOcean Monitoring..."
-doctl kubernetes cluster update $CLUSTER_NAME --update-kubeconfig --set-current-context
-doctl kubernetes cluster monitoring enable $CLUSTER_NAME
+doctl kubernetes cluster update $env:CLUSTER_NAME --update-kubeconfig --set-current-context
+doctl kubernetes cluster monitoring enable $env:CLUSTER_NAME
 Print-Status "DigitalOcean Monitoring setup" $?
-
-# Enable DigitalOcean Kubernetes Monitoring
-Write-Host "Enabling DigitalOcean Kubernetes Monitoring..."
-doctl kubernetes cluster monitoring enable $CLUSTER_NAME
-Print-Status "DigitalOcean Kubernetes Monitoring enabled" $?
 
 # Display cluster info and next steps
 Write-Host "Deployment completed successfully!"
@@ -99,6 +81,5 @@ Write-Host ""
 Write-Host "Next steps:"
 Write-Host "1. Configure your domain's DNS to point to the Load Balancer IP"
 Write-Host "2. Set up SSL certificates using Let's Encrypt"
-Write-Host "3. Configure backup schedules for MongoDB and Neo4j using DigitalOcean Managed Databases"
+Write-Host "3. Monitor the cluster using DigitalOcean Monitoring and adjust resources as needed"
 Write-Host "4. Set up CI/CD pipelines in CircleCI"
-Write-Host "5. Monitor the cluster using DigitalOcean Monitoring and adjust resources as needed"

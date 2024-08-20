@@ -5,36 +5,52 @@
 1. Prerequisites:
    - Ensure you have Docker and Docker Compose installed on your deployment machine.
    - Make sure you have access to the project's GitHub repository.
-   - Verify that you have the necessary credentials for DigitalOcean.
+   - Install the DigitalOcean CLI (doctl) and authenticate it with your account.
    - For Windows users, ensure you have PowerShell 5.1 or later installed.
 
-2. Environment Setup:
+2. Initial DigitalOcean Setup:
    - Clone the repository: `git clone https://github.com/your-repo/adhd2e-ai-agent.git`
    - Navigate to the project directory: `cd adhd2e-ai-agent`
-   - Copy the example environment file: `cp .env.example .env`
-   - Fill in all the required environment variables in the `.env` file.
+   - For Unix-based systems (Linux/macOS):
+     Run the initial setup script: `./initial_setup.sh`
+   - For Windows:
+     Run the initial setup script: `.\initial_setup.ps1`
+   - This script will:
+     - Create a Kubernetes cluster on DigitalOcean
+     - Set up a Container Registry
+     - Create Spaces for backups
+     - Set up managed MongoDB and Neo4j databases
+     - Generate a .env file with necessary credentials
 
-3. Build and Deploy:
+3. Review and Modify Configuration:
+   - Review the generated .env file and make any necessary adjustments.
+   - Update Kubernetes configuration files in the `k8s/` directory if needed.
+
+4. Build and Deploy:
    - For Unix-based systems (Linux/macOS):
      Run the deployment script: `./deploy.sh`
    - For Windows:
      Run the deployment script: `.\deploy.ps1`
    - These scripts will:
-     - Create a Kubernetes cluster on DigitalOcean
-     - Set up a Container Registry
-     - Build and push Docker images
+     - Build and push Docker images to the DigitalOcean Container Registry
      - Apply Kubernetes configurations
      - Set up monitoring using DigitalOcean Monitoring
 
-4. Verify Deployment:
+5. Verify Deployment:
    - Check the status of the Kubernetes pods: `kubectl get pods -n adhd2e`
    - Ensure all pods are in the "Running" state
    - Access the application via the Load Balancer IP: `kubectl get services -n adhd2e`
 
-5. Post-Deployment Steps:
+6. Post-Deployment Steps:
    - Configure your domain's DNS to point to the Load Balancer IP
    - Set up SSL certificates using Let's Encrypt and cert-manager
    - Perform initial data seeding if required
+   - Set up CI/CD pipelines in CircleCI (refer to .circleci/config.yml)
+
+7. Ongoing Maintenance:
+   - Monitor the cluster using DigitalOcean Monitoring
+   - Regularly update dependencies and redeploy as needed
+   - Perform database backups using DigitalOcean's managed database features
 
 ## Monitoring
 
