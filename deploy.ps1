@@ -175,9 +175,13 @@ if (-not $neo4jDbs) {
     Write-Host "No Neo4j database found. Creating a new managed Neo4j database..."
     $neo4jName = "adhd2e-neo4j"
     $neo4jRegion = "nyc1"  # Specify the region here
-    doctl databases create $neo4jName --engine neo4j --region $neo4jRegion --size db-s-1vcpu-1gb --num-nodes 1
+    $neo4jVersion = "5.6"  # Specify the Neo4j version
+    doctl databases create $neo4jName --engine neo4j --version $neo4jVersion --region $neo4jRegion --size db-s-1vcpu-1gb --num-nodes 1
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create managed Neo4j database" $false
+        Write-Host "Error details:"
+        doctl databases create $neo4jName --engine neo4j --version $neo4jVersion --region $neo4jRegion --size db-s-1vcpu-1gb --num-nodes 1 --verbose
+        exit 1
     }
     Print-Status "Managed Neo4j database created successfully" $true
 } else {
