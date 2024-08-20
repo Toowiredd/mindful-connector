@@ -135,51 +135,99 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Using existing Container Registry"
 }
 
-# Create block storage volume for backups if it doesn't exist
-Write-Host "Checking for existing block storage volume for backups..."
-$volumes = doctl compute volume list --format Name,Region --no-header
-$backupVolume = $volumes | Where-Object { $_ -match 'adhd2e-backups' }
-if (-not $backupVolume) {
-    Write-Host "No backup volume found. Creating a new block storage volume for backups..."
-    $volumeName = "adhd2e-backups"
-    $volumeRegion = "nyc1"  # Specify the region here
-    doctl compute volume create $volumeName --region $volumeRegion --size 10GiB
-    if ($LASTEXITCODE -ne 0) {
-        Print-Status "Failed to create block storage volume for backups" $false
-    }
-    Print-Status "Block storage volume for backups created successfully" $true
-} else {
-    Write-Host "Using existing block storage volume for backups"
-}
+# Create persistent volume for Neo4j
+Write-Host "Creating persistent volume for Neo4j..."
+$neo4jPvYaml = @"
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: neo4j-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: do-block-storage
+  csi:
+    driver: dobs.csi.digitalocean.com
+    fsType: ext4
+    volumeHandle: $(New-Guid)
+"@
 
-# Create managed MongoDB database if it doesn't exist
-Write-Host "Checking for existing MongoDB database..."
-$mongoDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'mongodb' }
-if (-not $mongoDbs) {
-    Write-Host "No MongoDB database found. Creating a new managed MongoDB database..."
-    $dbName = "adhd2e-mongodb"
-    $dbRegion = "nyc1"  # Specify the region here
-    doctl databases create $dbName --engine mongodb --region $dbRegion --size db-s-1vcpu-1gb --num-nodes 1
-    if ($LASTEXITCODE -ne 0) {
-        Print-Status "Failed to create managed MongoDB database" $false
-    }
-    Print-Status "Managed MongoDB database created successfully" $true
-} else {
-    Write-Host "Using existing MongoDB database"
+$neo4jPvYaml | kubectl apply -f -
+if ($LASTEXITCODE -ne 0) {
+    Print-Status "Failed to create Neo4j persistent volume" $false
 }
+Print-Status "Neo4j persistent volume created successfully" $true
 
-# Check for existing Neo4j database
-Write-Host "Checking for existing Neo4j database..."
-$neo4jDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'neo4j' }
-if (-not $neo4jDbs) {
-    Write-Host "Warning: No Neo4j database found. Neo4j database creation is currently not supported." -ForegroundColor Yellow
-    Write-Host "Please create a Neo4j database manually through the DigitalOcean control panel." -ForegroundColor Yellow
-    Write-Host "After creating the database, update the .env file with the Neo4j connection details." -ForegroundColor Yellow
-    Write-Host "Then run this script again to continue the deployment process." -ForegroundColor Yellow
-    exit 1
-} else {
-    Write-Host "Using existing Neo4j database"
+# Create Neo4j deployment and service
+Write-Host "Creating Neo4j deployment and service..."
+$neo4jDeploymentYaml = @"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neo4j
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+    spec:
+      containers:
+      - name: neo4j
+        image: neo4j:4.4
+        ports:
+        - containerPort: 7474
+        - containerPort: 7687
+        env:
+        - name: NEO4J_AUTH
+          value: neo4j/$env:NEO4J_PASSWORD
+        volumeMounts:
+        - name: neo4j-data
+          mountPath: /data
+      volumes:
+      - name: neo4j-data
+        persistentVolumeClaim:
+          claimName: neo4j-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+spec:
+  selector:
+    app: neo4j
+  ports:
+    - port: 7474
+      targetPort: 7474
+      name: http
+    - port: 7687
+      targetPort: 7687
+      name: bolt
+"@
+
+$neo4jDeploymentYaml | kubectl apply -f -
+if ($LASTEXITCODE -ne 0) {
+    Print-Status "Failed to create Neo4j deployment and service" $false
 }
+Print-Status "Neo4j deployment and service created successfully" $true
+
+# Update the application's Neo4j connection details
+Write-Host "Updating application's Neo4j connection details..."
+$neo4jServiceIp = kubectl get service neo4j -o jsonpath='{.spec.clusterIP}'
+$env:NEO4J_URI = "bolt://$neo4jServiceIp`:7687"
+
+# Update the .env file with the new Neo4j connection details
+$envContent = Get-Content .env -Raw
+$envContent = $envContent -replace "NEO4J_URI=.*", "NEO4J_URI=$env:NEO4J_URI"
+$envContent | Set-Content .env -NoNewline
+
+Print-Status "Application's Neo4j connection details updated" $true
 
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
