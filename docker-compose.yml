@@ -130,7 +130,10 @@ services:
 
 networks:
   frontend-network:
+    driver: bridge
   backend-network:
+    driver: bridge
+    internal: true
 
 volumes:
   supabase-data:
