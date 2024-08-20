@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import InstallPrompt from './InstallPrompt';
 
 const Layout = () => {
