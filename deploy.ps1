@@ -61,6 +61,17 @@ Write-Host "Configuring kubectl..."
 $env:KUBECONFIG = ".\kubeconfig.yaml"
 Print-Status "kubectl configuration" $?
 
+# Check Kubernetes cluster connection
+Write-Host "Checking Kubernetes cluster connection..."
+$clusterCheck = kubectl cluster-info
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to connect to Kubernetes cluster. Please check your cluster configuration and try again."
+    Write-Host "Cluster info output:"
+    Write-Host $clusterCheck
+    exit 1
+}
+Print-Status "Kubernetes cluster connection" $true
+
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
 docker-compose build
@@ -75,17 +86,27 @@ Print-Status "Docker image build and push" $true
 
 # Apply Kubernetes configurations
 Write-Host "Applying Kubernetes configurations..."
-kubectl apply -f k8s/namespace.yaml --validate=false
-kubectl apply -f k8s/secrets.yaml --validate=false
-kubectl apply -f k8s/deployments/ --validate=false
-kubectl apply -f k8s/services/ --validate=false
-kubectl apply -f k8s/ingress.yaml --validate=false
-kubectl apply -f k8s/hpa.yaml --validate=false
-$kubeApplySuccess = $?
+$kubeApplySuccess = $true
+
+function Apply-KubeConfig($file) {
+    kubectl apply -f $file --validate=false
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to apply $file" -ForegroundColor Yellow
+        $script:kubeApplySuccess = $false
+    }
+}
+
+Apply-KubeConfig "k8s/namespace.yaml"
+Apply-KubeConfig "k8s/secrets.yaml"
+Get-ChildItem "k8s/deployments" -Filter *.yaml | ForEach-Object { Apply-KubeConfig $_.FullName }
+Get-ChildItem "k8s/services" -Filter *.yaml | ForEach-Object { Apply-KubeConfig $_.FullName }
+Apply-KubeConfig "k8s/ingress.yaml"
+Apply-KubeConfig "k8s/hpa.yaml"
+
 Print-Status "Kubernetes configuration application" $kubeApplySuccess
 
 if (-not $kubeApplySuccess) {
-    Write-Host "Warning: Kubernetes configurations were applied with validation disabled. Please review your Kubernetes YAML files for potential issues."
+    Write-Host "Warning: Some Kubernetes configurations were applied with validation disabled. Please review your Kubernetes YAML files for potential issues." -ForegroundColor Yellow
 }
 
 # Wait for deployments to be ready
