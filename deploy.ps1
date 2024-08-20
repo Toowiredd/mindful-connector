@@ -142,7 +142,8 @@ $backupVolume = $volumes | Where-Object { $_ -match 'adhd2e-backups' }
 if (-not $backupVolume) {
     Write-Host "No backup volume found. Creating a new block storage volume for backups..."
     $volumeName = "adhd2e-backups"
-    doctl compute volume create $volumeName --region $region --size 10GiB
+    $volumeRegion = "nyc1"  # Specify the region here
+    doctl compute volume create $volumeName --region $volumeRegion --size 10GiB
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create block storage volume for backups" $false
     }
@@ -157,7 +158,8 @@ $mongoDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Obj
 if (-not $mongoDbs) {
     Write-Host "No MongoDB database found. Creating a new managed MongoDB database..."
     $dbName = "adhd2e-mongodb"
-    doctl databases create $dbName --engine mongodb --region $region --size db-s-1vcpu-1gb --num-nodes 1
+    $dbRegion = "nyc1"  # Specify the region here
+    doctl databases create $dbName --engine mongodb --region $dbRegion --size db-s-1vcpu-1gb --num-nodes 1
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create managed MongoDB database" $false
     }
@@ -172,7 +174,8 @@ $neo4jDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Obj
 if (-not $neo4jDbs) {
     Write-Host "No Neo4j database found. Creating a new managed Neo4j database..."
     $neo4jName = "adhd2e-neo4j"
-    doctl databases create $neo4jName --engine neo4j --region $region --size db-s-1vcpu-1gb --num-nodes 1
+    $neo4jRegion = "nyc1"  # Specify the region here
+    doctl databases create $neo4jName --engine neo4j --region $neo4jRegion --size db-s-1vcpu-1gb --num-nodes 1
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create managed Neo4j database" $false
     }
