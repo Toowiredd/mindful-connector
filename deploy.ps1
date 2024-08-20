@@ -60,28 +60,53 @@ if ($LASTEXITCODE -ne 0) {
 
 Print-Status "DigitalOcean CLI authentication verified" $true
 
-# Create Kubernetes cluster if it doesn't exist
+# Function to create Kubernetes cluster
+function Create-KubernetesCluster {
+    param (
+        [string]$clusterName,
+        [string]$region,
+        [int]$nodeCount = 3,
+        [string]$nodeSize = "s-2vcpu-4gb"
+    )
+
+    Write-Host "Creating Kubernetes cluster '$clusterName' in region '$region'..."
+    $result = doctl kubernetes cluster create $clusterName --region $region --node-pool "name=worker-pool;size=$nodeSize;count=$nodeCount" 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        if ($result -match "not enough available droplet limit") {
+            Write-Host "Error: Insufficient droplet limit. Would you like to try creating a smaller cluster? (y/n)" -ForegroundColor Yellow
+            $response = Read-Host
+            if ($response -eq 'y') {
+                return Create-KubernetesCluster -clusterName $clusterName -region $region -nodeCount 2 -nodeSize "s-1vcpu-2gb"
+            } else {
+                Write-Error "Cluster creation aborted. Please increase your droplet limit in the DigitalOcean control panel and try again."
+                exit 1
+            }
+        } else {
+            Write-Error "Failed to create Kubernetes cluster: $result"
+            exit 1
+        }
+    }
+
+    Print-Status "Kubernetes cluster created successfully" $true
+    return $clusterName
+}
+
+# Create or get existing Kubernetes cluster
 Write-Host "Checking for existing Kubernetes cluster..."
 $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
 if ($clusters.Count -eq 0) {
-    Write-Host "No Kubernetes cluster found. Creating a new cluster..."
     $clusterName = "adhd2e-cluster"
     $region = "nyc1"
-    Write-Host "Creating Kubernetes cluster '$clusterName' in region '$region'..."
-    doctl kubernetes cluster create $clusterName --region $region
-    if ($LASTEXITCODE -ne 0) {
-        Print-Status "Failed to create Kubernetes cluster" $false
-    }
-    Print-Status "Kubernetes cluster created successfully" $true
-    $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
+    $clusterName = Create-KubernetesCluster -clusterName $clusterName -region $region
+} else {
+    $clusterName = ($clusters -split '\s+')[1]
+    Write-Host "Using existing Kubernetes cluster: $clusterName"
 }
-
-$clusterID = ($clusters -split '\s+')[0]
-Write-Host "Using Kubernetes cluster: $clusterID"
 
 # Update kubeconfig
 Write-Host "Updating kubeconfig..."
-doctl kubernetes cluster kubeconfig save $clusterID
+doctl kubernetes cluster kubeconfig save $clusterName
 if ($LASTEXITCODE -ne 0) {
     Print-Status "Failed to update kubeconfig" $false
 }
