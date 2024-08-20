@@ -50,14 +50,20 @@
    - Set the threshold and duration
    - Configure notification settings (email, Slack, etc.)
 
-3. Kubernetes Dashboard (Optional):
-   - If you need more detailed Kubernetes-specific metrics, you can set up the Kubernetes Dashboard
-   - Follow DigitalOcean's guide to install and access the Kubernetes Dashboard
+3. DigitalOcean Kubernetes Monitoring:
+   - Access detailed Kubernetes metrics through the DigitalOcean Control Panel
+   - Navigate to "Kubernetes" > "Your Cluster" > "Insights" tab
+   - View pod-level metrics, cluster health, and resource allocation
 
 4. Logging:
-   - DigitalOcean provides built-in log management for Kubernetes clusters
+   - Use DigitalOcean's built-in logging solution for Kubernetes clusters
    - Access logs through the DigitalOcean Control Panel under "Kubernetes" > "Your Cluster" > "Insights" tab
-   - For more advanced log management, consider setting up DigitalOcean's Managed Databases for Elasticsearch
+   - For centralized logging, consider setting up DigitalOcean's Managed Databases for Elasticsearch or using DigitalOcean's partner solutions like Papertrail or Loggly
+
+5. Application Performance Monitoring (APM):
+   - Integrate DigitalOcean's APM solution or a compatible third-party tool
+   - Configure APM agents in your application code to collect detailed performance metrics
+   - Access APM data through the DigitalOcean Control Panel or the chosen APM tool's interface
 
 ## Troubleshooting
 

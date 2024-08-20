@@ -90,8 +90,13 @@ print_status "Deployment readiness"
 # Set up DigitalOcean Monitoring
 echo "Setting up DigitalOcean Monitoring..."
 doctl kubernetes cluster update $CLUSTER_NAME --update-kubeconfig --set-current-context
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/Kubernetes-Monitoring/master/do-agent.yaml
+doctl kubernetes cluster monitoring enable $CLUSTER_NAME
 print_status "DigitalOcean Monitoring setup"
+
+# Enable DigitalOcean Kubernetes Monitoring
+echo "Enabling DigitalOcean Kubernetes Monitoring..."
+doctl kubernetes cluster monitoring enable $CLUSTER_NAME
+print_status "DigitalOcean Kubernetes Monitoring enabled"
 
 # Display cluster info and next steps
 echo "Deployment completed successfully!"
