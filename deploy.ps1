@@ -135,8 +135,18 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Using existing Container Registry"
 }
 
-# Create persistent volume for Neo4j
-Write-Host "Creating persistent volume for Neo4j..."
+# Create or update persistent volume for Neo4j
+Write-Host "Creating or updating persistent volume for Neo4j..."
+$existingPv = kubectl get pv neo4j-pv -o json | ConvertFrom-Json
+
+if ($existingPv) {
+    Write-Host "Existing Neo4j persistent volume found. Updating..."
+    $volumeHandle = $existingPv.spec.csi.volumeHandle
+} else {
+    Write-Host "Creating new Neo4j persistent volume..."
+    $volumeHandle = New-Guid
+}
+
 $neo4jPvYaml = @"
 apiVersion: v1
 kind: PersistentVolume
@@ -152,14 +162,14 @@ spec:
   csi:
     driver: dobs.csi.digitalocean.com
     fsType: ext4
-    volumeHandle: $(New-Guid)
+    volumeHandle: $volumeHandle
 "@
 
 $neo4jPvYaml | kubectl apply -f -
 if ($LASTEXITCODE -ne 0) {
-    Print-Status "Failed to create Neo4j persistent volume" $false
+    Print-Status "Failed to create or update Neo4j persistent volume" $false
 }
-Print-Status "Neo4j persistent volume created successfully" $true
+Print-Status "Neo4j persistent volume created or updated successfully" $true
 
 # Create Neo4j deployment and service
 Write-Host "Creating Neo4j deployment and service..."
