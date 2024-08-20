@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ${DOCKER_LOGIN}/${CIRCLE_PROJECT_REPONAME}-frontend:${CIRCLE_SHA1}
+        image: ${DOCKER_LOGIN}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}
         ports:
         - containerPort: 80
         resources:
