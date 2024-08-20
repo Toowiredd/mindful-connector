@@ -16,16 +16,21 @@ class AIService {
     try {
       const result = await session.readTransaction(async (tx) => {
         const query = `
-          MATCH (u:User {id: $userId})-[:COMPLETED]->(t:Task)
+          MATCH (u:User {id: $userId})
+          OPTIONAL MATCH (u)-[:COMPLETED]->(t:Task)
           WITH u, collect(t) AS completedTasks
-          MATCH (u)-[:INTERESTED_IN]->(topic:Topic)
+          OPTIONAL MATCH (u)-[:INTERESTED_IN]->(topic:Topic)
           WITH u, completedTasks, collect(topic) AS interests
           MATCH (t:Task)
           WHERE NOT t IN completedTasks
-          AND any(interest IN interests WHERE (t)-[:RELATED_TO]->(interest))
+          AND (
+            any(interest IN interests WHERE (t)-[:RELATED_TO]->(interest))
+            OR t.adhdType = u.adhdType
+          )
           RETURN t AS task, 
-                 size([(t)-[:RELATED_TO]->(i) WHERE i IN interests | i]) AS relevanceScore
-          ORDER BY relevanceScore DESC
+                 size([(t)-[:RELATED_TO]->(i) WHERE i IN interests | i]) AS relevanceScore,
+                 t.adhdType = u.adhdType AS matchesAdhdType
+          ORDER BY matchesAdhdType DESC, relevanceScore DESC
           LIMIT 5
         `;
         return await tx.run(query, { userId });
@@ -36,7 +41,11 @@ class AIService {
         title: encrypt(record.get('task').properties.title),
         description: encrypt(record.get('task').properties.description),
         relevanceScore: record.get('relevanceScore').toNumber(),
+        matchesAdhdType: record.get('matchesAdhdType'),
       }));
+    } catch (error) {
+      console.error('Error fetching personalized recommendations:', error);
+      throw new Error('Failed to fetch personalized recommendations');
     } finally {
       await session.close();
     }
@@ -53,6 +62,9 @@ class AIService {
         `;
         await tx.run(query, { userId, recommendationId, feedback: encrypt(feedback) });
       });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      throw new Error('Failed to submit feedback');
     } finally {
       await session.close();
     }
@@ -80,6 +92,9 @@ class AIService {
 
       const response = await this.aimlModel.generateResponse(message, userContext);
       return encrypt(response);
+    } catch (error) {
+      console.error('Error generating chat response:', error);
+      throw new Error('Failed to generate chat response');
     } finally {
       await session.close();
     }

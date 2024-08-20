@@ -16,6 +16,9 @@ const AIRecommendations = () => {
     queryFn: aiService.getPersonalizedRecommendations,
     staleTime: 300000, // 5 minutes
     cacheTime: 600000, // 10 minutes
+    onError: (error) => {
+      toast.error(`Failed to load recommendations: ${error.message}`);
+    },
   });
 
   const feedbackMutation = useMutation({
@@ -23,8 +26,8 @@ const AIRecommendations = () => {
     onSuccess: () => {
       toast.success('Feedback submitted successfully');
     },
-    onError: () => {
-      toast.error('Failed to submit feedback');
+    onError: (error) => {
+      toast.error(`Failed to submit feedback: ${error.message}`);
     },
   });
 
@@ -34,8 +37,8 @@ const AIRecommendations = () => {
       toast.success('AI response received');
       // Handle the chat response, e.g., update state to display it
     },
-    onError: () => {
-      toast.error('Failed to get AI response');
+    onError: (error) => {
+      toast.error(`Failed to get AI response: ${error.message}`);
     },
   });
 
@@ -61,7 +64,7 @@ const AIRecommendations = () => {
         Personalized AI Recommendations
       </h2>
       {recommendations.map((rec) => (
-        <Card key={rec.id} className="transition-shadow hover:shadow-lg">
+        <Card key={rec.id} className={`transition-shadow hover:shadow-lg ${rec.matchesAdhdType ? 'border-green-500' : ''}`}>
           <CardHeader>
             <CardTitle className="text-xl">{decrypt(rec.title)}</CardTitle>
           </CardHeader>
@@ -74,7 +77,10 @@ const AIRecommendations = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-between">
-            <div className="text-sm text-gray-500">Relevance: {rec.relevanceScore}%</div>
+            <div className="text-sm text-gray-500">
+              Relevance: {rec.relevanceScore}%
+              {rec.matchesAdhdType && <span className="ml-2 text-green-500">Matches ADHD Type</span>}
+            </div>
             <div>
               <Button
                 variant="ghost"
