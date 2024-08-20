@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import { Helmet } from 'react-helmet';
+import InstallPrompt from './InstallPrompt';
 
 const Layout = () => {
   return (
@@ -20,7 +21,10 @@ const Layout = () => {
             <li><Link to="/tasks" className="hover:underline">Tasks</Link></li>
             <li><Link to="/profile" className="hover:underline">Profile</Link></li>
           </ul>
-          <ThemeToggle />
+          <div className="flex items-center space-x-2">
+            <InstallPrompt />
+            <ThemeToggle />
+          </div>
         </nav>
       </header>
       <main id="main-content" className="flex-grow container mx-auto p-4">
