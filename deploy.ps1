@@ -49,13 +49,16 @@ if (!(Test-DockerRunning)) {
     exit 1
 }
 
-# Authenticate with DigitalOcean
-Write-Host "Authenticating with DigitalOcean..."
-doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
+# Verify DigitalOcean CLI authentication
+Write-Host "Verifying DigitalOcean CLI authentication..."
+$authStatus = doctl auth list
+
 if ($LASTEXITCODE -ne 0) {
-    Print-Status "DigitalOcean authentication failed" $false
+    Write-Error "DigitalOcean CLI is not authenticated. Please run 'doctl auth init' and follow the prompts to authenticate."
+    exit 1
 }
-Print-Status "DigitalOcean authentication" $true
+
+Print-Status "DigitalOcean CLI authentication verified" $true
 
 # Get Kubernetes cluster info
 Write-Host "Fetching Kubernetes cluster info..."
