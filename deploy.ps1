@@ -122,7 +122,7 @@ Print-Status "Connected to Kubernetes cluster" $true
 
 # Create Container Registry if it doesn't exist
 Write-Host "Checking for existing Container Registry..."
-$registries = doctl registry list --format Registry --no-header
+$registries = doctl registry list --no-header
 if ($registries.Count -eq 0) {
     Write-Host "No Container Registry found. Creating a new registry..."
     $registryName = "adhd2e-registry"
@@ -135,11 +135,11 @@ if ($registries.Count -eq 0) {
 
 # Create Spaces for backups if it doesn't exist
 Write-Host "Checking for existing Spaces..."
-$spaces = doctl spaces list --format Name --no-header
+$spaces = doctl compute volume list --format Name --no-header
 if ($spaces.Count -eq 0) {
     Write-Host "No Spaces found. Creating a new Space for backups..."
     $spaceName = "adhd2e-backups"
-    doctl spaces create $spaceName --region $region
+    doctl compute volume create $spaceName --size 10GiB --region $region
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create Space for backups" $false
     }
