@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lightbulb, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { decrypt } from '../../services/encryption';
+import LoadingSpinner from '../LoadingSpinner';
+import ErrorDisplay from '../ErrorDisplay';
 
 const AIRecommendations = () => {
   const [chatMessage, setChatMessage] = useState('');
 
   const { data: recommendations, isLoading, error } = useQuery({
     queryKey: ['personalizedRecommendations'],
-    queryFn: aiService.getPersonalizedRecommendations,
+    queryFn: aiService.getRecommendations,
     staleTime: 300000, // 5 minutes
     cacheTime: 600000, // 10 minutes
     onError: (error) => {
@@ -54,8 +55,8 @@ const AIRecommendations = () => {
     }
   };
 
-  if (isLoading) return <div>Loading personalized recommendations...</div>;
-  if (error) return <div>Error loading recommendations: {error.message}</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay message={error.message} />;
 
   return (
     <div className="space-y-4">
@@ -66,13 +67,13 @@ const AIRecommendations = () => {
       {recommendations.map((rec) => (
         <Card key={rec.id} className={`transition-shadow hover:shadow-lg ${rec.matchesAdhdType ? 'border-green-500' : ''}`}>
           <CardHeader>
-            <CardTitle className="text-xl">{decrypt(rec.title)}</CardTitle>
+            <CardTitle className="text-xl">{rec.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 dark:text-gray-300">{decrypt(rec.description)}</p>
+            <p className="text-gray-600 dark:text-gray-300">{rec.description}</p>
             {rec.actionItem && (
               <div className="mt-2">
-                <strong>Suggested Action:</strong> {decrypt(rec.actionItem)}
+                <strong>Suggested Action:</strong> {rec.actionItem}
               </div>
             )}
           </CardContent>

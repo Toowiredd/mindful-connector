@@ -1,8 +1,10 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService } from '../services/api';
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorDisplay from './ErrorDisplay';
 
 const TaskList = () => {
   const queryClient = useQueryClient();
@@ -44,8 +46,8 @@ const TaskList = () => {
     }
   };
 
-  if (isLoading) return <div>Loading tasks...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay message={error.message} />;
 
   return (
     <div className="space-y-4">
