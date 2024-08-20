@@ -1,19 +1,51 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { aiService } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Lightbulb, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Input } from "@/components/ui/input"
+import { Lightbulb, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const AIRecommendations = () => {
+  const [chatMessage, setChatMessage] = useState('');
+
   const { data: recommendations, isLoading, error } = useQuery({
-    queryKey: ['aiRecommendations'],
-    queryFn: aiService.getRecommendations,
+    queryKey: ['personalizedRecommendations'],
+    queryFn: aiService.getPersonalizedRecommendations,
+  });
+
+  const feedbackMutation = useMutation({
+    mutationFn: ({ id, feedback }) => aiService.submitFeedback(id, feedback),
+    onSuccess: () => {
+      toast.success('Feedback submitted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to submit feedback');
+    },
+  });
+
+  const chatMutation = useMutation({
+    mutationFn: (message) => aiService.getChatResponse(message),
+    onSuccess: (data) => {
+      toast.success('AI response received');
+      // Handle the chat response, e.g., update state to display it
+    },
+    onError: () => {
+      toast.error('Failed to get AI response');
+    },
   });
 
   const handleFeedback = (id, feedback) => {
-    // TODO: Implement feedback submission to the backend
-    console.log(`Recommendation ${id} received ${feedback} feedback`);
+    feedbackMutation.mutate({ id, feedback });
+  };
+
+  const handleChatSubmit = (e) => {
+    e.preventDefault();
+    if (chatMessage.trim()) {
+      chatMutation.mutate(chatMessage);
+      setChatMessage('');
+    }
   };
 
   if (isLoading) return <div>Loading personalized recommendations...</div>;
@@ -59,6 +91,27 @@ const AIRecommendations = () => {
           </CardFooter>
         </Card>
       ))}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center">
+            <MessageCircle className="mr-2" />
+            Chat with AI Assistant
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleChatSubmit} className="flex space-x-2">
+            <Input
+              value={chatMessage}
+              onChange={(e) => setChatMessage(e.target.value)}
+              placeholder="Ask a question..."
+              className="flex-grow"
+            />
+            <Button type="submit" disabled={chatMutation.isLoading}>
+              Send
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

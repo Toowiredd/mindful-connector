@@ -68,8 +68,10 @@ export const profileService = {
 
 export const aiService = {
   getRecommendations: () => api.get('/ai/recommendations'),
+  getPersonalizedRecommendations: () => api.get('/ai/personalized-recommendations'),
   getInsights: () => api.get('/ai/insights'),
   submitFeedback: (recommendationId, feedback) => api.post('/ai/feedback', { recommendationId, feedback }),
+  getChatResponse: (message) => api.post('/ai/chat', { message }),
 };
 
 export const analyticsService = {
