@@ -17,11 +17,10 @@ const Login = () => {
     try {
       const response = await authService.login({ email, password });
       localStorage.setItem('authToken', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
       toast.success('Login successful');
       navigate('/dashboard');
     } catch (err) {
-      toast.error('Invalid email or password');
+      toast.error(err.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

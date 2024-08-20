@@ -3,7 +3,6 @@ import rateLimit from 'axios-rate-limit';
 import { encrypt, decrypt } from './encryption';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.adhd2e.com';
-const NEO4J_URI = import.meta.env.VITE_NEO4J_URI || 'bolt://localhost:7687';
 
 const api = rateLimit(axios.create({
   baseURL: API_BASE_URL,
@@ -25,6 +24,8 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response && error.response.status === 401) {
       // Handle token refresh or logout
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -33,7 +34,10 @@ api.interceptors.response.use(
 export const authService = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
+  logout: () => {
+    localStorage.removeItem('authToken');
+    return api.post('/auth/logout');
+  },
 };
 
 export const taskService = {
@@ -51,10 +55,6 @@ export const profileService = {
 export const aiService = {
   getRecommendations: () => api.get('/ai/recommendations'),
   submitFeedback: (feedback) => api.post('/ai/feedback', feedback),
-};
-
-export const neo4jService = {
-  runQuery: (query, params) => api.post('/neo4j/query', { query, params }),
 };
 
 export default api;
