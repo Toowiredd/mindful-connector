@@ -1,12 +1,11 @@
 # PowerShell Deployment Script for Windows 11
 
-# Check for .env file
+# Load environment variables
 if (!(Test-Path .env)) {
     Write-Error "Error: .env file not found. Please run initial_setup.ps1 first."
     exit 1
 }
 
-# Load environment variables
 Get-Content .env | ForEach-Object {
     if ($_ -match '^(.+)=(.+)$') {
         Set-Item -Path Env:$($Matches[1]) -Value $Matches[2]
@@ -50,56 +49,40 @@ if (!(Test-DockerRunning)) {
     exit 1
 }
 
-# Check if doctl is already authenticated
-$doctlAuth = doctl auth list 2>&1
+# Authenticate with DigitalOcean
+Write-Host "Authenticating with DigitalOcean..."
+doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Authenticating with DigitalOcean..."
-    doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
-    if ($LASTEXITCODE -ne 0) {
-        Print-Status "DigitalOcean authentication failed" $false
-    }
-} else {
-    Write-Host "doctl is already authenticated."
+    Print-Status "DigitalOcean authentication failed" $false
 }
 Print-Status "DigitalOcean authentication" $true
 
-# Configure kubectl
-Write-Host "Configuring kubectl..."
-[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:KUBE_CONFIG)) | Out-File -FilePath kubeconfig.yaml -Encoding utf8
-$env:KUBECONFIG = ".\kubeconfig.yaml"
-Print-Status "kubectl configuration" $?
-
-# Check Kubernetes cluster connection
-Write-Host "Checking Kubernetes cluster connection..."
-$clusterInfo = kubectl cluster-info
-$clusterNodes = kubectl get nodes
-$kubeConfig = kubectl config view --raw
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Failed to connect to Kubernetes cluster. Please check your cluster configuration and try again."
-    Write-Host "Debugging information:"
-    Write-Host "1. Cluster Info:"
-    Write-Host $clusterInfo
-    Write-Host "2. Cluster Nodes:"
-    Write-Host $clusterNodes
-    Write-Host "3. Current Kube Config:"
-    Write-Host $kubeConfig
-    Write-Host "4. DigitalOcean Cluster List:"
-    doctl kubernetes cluster list
-    Write-Host "5. Current Kubernetes Context:"
-    kubectl config current-context
-    Write-Host "Please ensure that you have created a Kubernetes cluster in DigitalOcean and that your kubeconfig is correctly set up."
-    Write-Host "You can update your kubeconfig using: doctl kubernetes cluster kubeconfig save <cluster-name>"
+# Get Kubernetes cluster info
+Write-Host "Fetching Kubernetes cluster info..."
+$clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
+if ($clusters.Count -eq 0) {
+    Write-Error "No Kubernetes clusters found. Please create a cluster first."
     exit 1
 }
 
-Write-Host "Successfully connected to Kubernetes cluster."
-Write-Host "Cluster Info:"
-Write-Host $clusterInfo
-Write-Host "Cluster Nodes:"
-Write-Host $clusterNodes
+$clusterID = ($clusters -split '\s+')[0]
+Write-Host "Using Kubernetes cluster: $clusterID"
 
-Print-Status "Kubernetes cluster connection" $true
+# Update kubeconfig
+Write-Host "Updating kubeconfig..."
+doctl kubernetes cluster kubeconfig save $clusterID
+if ($LASTEXITCODE -ne 0) {
+    Print-Status "Failed to update kubeconfig" $false
+}
+Print-Status "Kubeconfig updated" $true
+
+# Verify Kubernetes connection
+Write-Host "Verifying Kubernetes connection..."
+kubectl cluster-info
+if ($LASTEXITCODE -ne 0) {
+    Print-Status "Failed to connect to Kubernetes cluster" $false
+}
+Print-Status "Connected to Kubernetes cluster" $true
 
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
@@ -119,12 +102,12 @@ $kubeApplySuccess = $true
 
 function Apply-KubeConfig($file) {
     Write-Host "Applying $file..."
-    kubectl apply -f $file --validate=false
+    kubectl apply -f $file
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Failed to apply $file" -ForegroundColor Yellow
         $script:kubeApplySuccess = $false
         Write-Host "Error details:"
-        kubectl apply -f $file --validate=false --v=8
+        kubectl apply -f $file --v=8
     } else {
         Write-Host "Successfully applied $file" -ForegroundColor Green
     }
@@ -138,10 +121,7 @@ Apply-KubeConfig "k8s/ingress.yaml"
 Apply-KubeConfig "k8s/hpa.yaml"
 
 if (-not $kubeApplySuccess) {
-    Write-Host "Warning: Some Kubernetes configurations were applied with validation disabled. Please review your Kubernetes YAML files for potential issues." -ForegroundColor Yellow
-    Write-Host "Attempting to get more information about the cluster and its API resources..."
-    kubectl api-resources
-    kubectl get apiservices
+    Write-Host "Warning: Some Kubernetes configurations failed to apply. Please review the error messages above." -ForegroundColor Yellow
     exit 1
 }
 
@@ -151,12 +131,6 @@ Print-Status "Kubernetes configuration application" $kubeApplySuccess
 Write-Host "Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=600s deployment --all -n adhd2e
 Print-Status "Deployment readiness" $?
-
-# Set up DigitalOcean Monitoring
-Write-Host "Setting up DigitalOcean Monitoring..."
-doctl kubernetes cluster update $env:CLUSTER_NAME --update-kubeconfig --set-current-context
-doctl kubernetes cluster monitoring enable $env:CLUSTER_NAME
-Print-Status "DigitalOcean Monitoring setup" $?
 
 # Display cluster info and next steps
 Write-Host "Deployment completed successfully!"
