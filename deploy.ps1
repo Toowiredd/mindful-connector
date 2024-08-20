@@ -64,8 +64,18 @@ Print-Status "DigitalOcean CLI authentication verified" $true
 Write-Host "Fetching Kubernetes cluster info..."
 $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
 if ($clusters.Count -eq 0) {
-    Write-Error "No Kubernetes clusters found. Please create a cluster first."
-    exit 1
+    Write-Host "No Kubernetes clusters found. Would you like to create one? (Y/N)"
+    $createCluster = Read-Host
+    if ($createCluster -eq 'Y' -or $createCluster -eq 'y') {
+        $clusterName = Read-Host "Enter a name for your new cluster"
+        $region = Read-Host "Enter the region for your cluster (e.g., nyc1, sfo2, lon1)"
+        Write-Host "Creating Kubernetes cluster..."
+        doctl kubernetes cluster create $clusterName --region $region
+        $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
+    } else {
+        Write-Error "No Kubernetes clusters found. Please create a cluster first."
+        exit 1
+    }
 }
 
 $clusterID = ($clusters -split '\s+')[0]
