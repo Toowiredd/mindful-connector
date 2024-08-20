@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 
-const SECRET_KEY = process.env.REACT_APP_ENCRYPTION_KEY || 'default-secret-key';
+const SECRET_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'default-secret-key';
 
 export const encrypt = (data) => {
   return CryptoJS.AES.encrypt(data, SECRET_KEY).toString();
