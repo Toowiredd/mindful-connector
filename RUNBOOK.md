@@ -5,7 +5,7 @@
 1. Prerequisites:
    - Ensure you have Docker and Docker Compose installed on your deployment machine.
    - Make sure you have access to the project's GitHub repository.
-   - Verify that you have the necessary credentials for DigitalOcean, Supabase, MongoDB, and Neo4j.
+   - Verify that you have the necessary credentials for DigitalOcean.
 
 2. Environment Setup:
    - Clone the repository: `git clone https://github.com/your-repo/adhd2e-ai-agent.git`
@@ -20,7 +20,7 @@
      - Set up a Container Registry
      - Build and push Docker images
      - Apply Kubernetes configurations
-     - Set up monitoring and logging
+     - Set up monitoring using DigitalOcean Monitoring
 
 4. Verify Deployment:
    - Check the status of the Kubernetes pods: `kubectl get pods -n adhd2e`
@@ -34,23 +34,30 @@
 
 ## Monitoring
 
-1. Kubernetes Dashboard:
-   - Access the Kubernetes dashboard for an overview of the cluster's health
-   - Command to start the proxy: `kubectl proxy`
-   - Access URL: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+1. DigitalOcean Monitoring:
+   - Access the DigitalOcean Control Panel: https://cloud.digitalocean.com/
+   - Navigate to the "Monitoring" section in the left sidebar
+   - Here you can view metrics for your Kubernetes cluster, including:
+     - CPU usage
+     - Memory usage
+     - Disk I/O
+     - Network traffic
 
-2. Prometheus and Grafana:
-   - Access Grafana dashboard for detailed metrics
-   - Default URL: `https://grafana.your-domain.com`
-   - Login with the credentials set during deployment
+2. Setting up Alerts:
+   - In the DigitalOcean Control Panel, go to "Monitoring" > "Alerts"
+   - Click "Create Alert Policy"
+   - Choose the metric you want to monitor (e.g., CPU usage)
+   - Set the threshold and duration
+   - Configure notification settings (email, Slack, etc.)
 
-3. Logging with ELK Stack:
-   - Access Kibana for log analysis
-   - Default URL: `https://kibana.your-domain.com`
+3. Kubernetes Dashboard (Optional):
+   - If you need more detailed Kubernetes-specific metrics, you can set up the Kubernetes Dashboard
+   - Follow DigitalOcean's guide to install and access the Kubernetes Dashboard
 
-4. Set up alerts:
-   - Configure alert rules in Prometheus for CPU, memory, and disk usage thresholds
-   - Set up email or Slack notifications for critical alerts
+4. Logging:
+   - DigitalOcean provides built-in log management for Kubernetes clusters
+   - Access logs through the DigitalOcean Control Panel under "Kubernetes" > "Your Cluster" > "Insights" tab
+   - For more advanced log management, consider setting up DigitalOcean's Managed Databases for Elasticsearch
 
 ## Troubleshooting
 
@@ -69,6 +76,9 @@
    - Describe a pod: `kubectl describe pod <pod-name> -n adhd2e`
    - Execute commands in a pod: `kubectl exec -it <pod-name> -n adhd2e -- /bin/bash`
 
+5. DigitalOcean Support:
+   - If issues persist, use the DigitalOcean support system accessible through the Control Panel
+
 ## Maintenance
 
 1. Updating Dependencies:
@@ -77,29 +87,29 @@
    - Rebuild and redeploy after updates
 
 2. Database Backups:
-   - MongoDB backups are automated daily using the configured backup scripts
-   - Verify backups are being created and stored in DigitalOcean Spaces
+   - Use DigitalOcean's Managed Databases backup feature for MongoDB and Neo4j
+   - Configure automated backups through the DigitalOcean Control Panel
 
 3. Scaling:
    - Adjust the number of replicas in the Kubernetes deployment files as needed
-   - Update HPA (Horizontal Pod Autoscaler) settings if required
+   - Use DigitalOcean's node pool management to scale your cluster
 
 4. Monitoring and Optimization:
-   - Regularly review Grafana dashboards for performance insights
+   - Regularly review DigitalOcean Monitoring dashboards for performance insights
    - Optimize database queries and indexes based on usage patterns
 
 ## Security
 
 1. Access Management:
+   - Use DigitalOcean Teams for managing access to resources
    - Regularly review and update Kubernetes RBAC roles and bindings
-   - Rotate Kubernetes secrets periodically
 
 2. Network Security:
+   - Utilize DigitalOcean Cloud Firewalls to control traffic to your Kubernetes nodes
    - Ensure all external communications are encrypted (TLS)
-   - Regularly update and patch all components, including the base OS of nodes
 
 3. Authentication:
-   - Regularly rotate API keys for Supabase, MongoDB, and Neo4j
+   - Use DigitalOcean's managed databases for enhanced security
    - Implement and maintain strong password policies
 
 4. Compliance:
@@ -109,11 +119,12 @@
 ## Disaster Recovery
 
 1. Data Backups:
-   - Verify daily backups of MongoDB and Neo4j databases
+   - Utilize DigitalOcean Spaces for storing application-level backups
+   - Use DigitalOcean's Managed Databases backup features for MongoDB and Neo4j
    - Test restoration process quarterly to ensure backup integrity
 
 2. High Availability:
-   - Implement multi-zone deployment in DigitalOcean for increased resilience
+   - Implement multi-node Kubernetes clusters across multiple availability zones in DigitalOcean
    - Consider multi-region deployment for critical components
 
 3. Recovery Plan:
@@ -126,19 +137,23 @@
 
 ## Continuous Integration/Continuous Deployment (CI/CD)
 
-1. CircleCI Pipeline:
-   - The `.circleci/config.yml` file defines the CI/CD pipeline
-   - Ensure the CircleCI project is properly configured with necessary environment variables
+1. DigitalOcean App Platform (Optional):
+   - Consider migrating to DigitalOcean App Platform for simplified deployments
+   - Configure automatic deployments from your GitHub repository
 
-2. Automated Testing:
+2. CircleCI Integration:
+   - Ensure CircleCI is properly configured with necessary DigitalOcean credentials
+   - The `.circleci/config.yml` file defines the CI/CD pipeline
+
+3. Automated Testing:
    - Run `npm test` locally before pushing changes
    - CircleCI will automatically run tests on each push
 
-3. Deployment Process:
+4. Deployment Process:
    - Merges to the `main` branch trigger automatic deployments
    - Monitor CircleCI builds for any failures
 
-4. Rollback Procedure:
+5. Rollback Procedure:
    - In case of a failed deployment, use `kubectl rollout undo deployment/<deployment-name> -n adhd2e` to revert to the previous version
 
 Remember to keep this runbook updated as the system evolves. Regular reviews and updates ensure it remains a valuable resource for the team.

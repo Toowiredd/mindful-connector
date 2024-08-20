@@ -87,14 +87,11 @@ echo "Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=600s deployment --all -n adhd2e
 print_status "Deployment readiness"
 
-# Set up monitoring and logging
-echo "Setting up monitoring and logging..."
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
-helm install elk elastic/elasticsearch --namespace logging --create-namespace
-print_status "Monitoring and logging setup"
+# Set up DigitalOcean Monitoring
+echo "Setting up DigitalOcean Monitoring..."
+doctl kubernetes cluster update $CLUSTER_NAME --update-kubeconfig --set-current-context
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/Kubernetes-Monitoring/master/do-agent.yaml
+print_status "DigitalOcean Monitoring setup"
 
 # Display cluster info and next steps
 echo "Deployment completed successfully!"
@@ -104,6 +101,6 @@ echo ""
 echo "Next steps:"
 echo "1. Configure your domain's DNS to point to the Load Balancer IP"
 echo "2. Set up SSL certificates using Let's Encrypt"
-echo "3. Configure backup schedules for MongoDB and Neo4j"
+echo "3. Configure backup schedules for MongoDB and Neo4j using DigitalOcean Managed Databases"
 echo "4. Set up CI/CD pipelines in CircleCI"
-echo "5. Monitor the cluster and adjust resources as needed"
+echo "5. Monitor the cluster using DigitalOcean Monitoring and adjust resources as needed"
