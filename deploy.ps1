@@ -122,8 +122,8 @@ Print-Status "Connected to Kubernetes cluster" $true
 
 # Create Container Registry if it doesn't exist
 Write-Host "Checking for existing Container Registry..."
-$registries = doctl registry list --no-header
-if ($registries.Count -eq 0) {
+$registries = doctl registry get
+if ($LASTEXITCODE -ne 0) {
     Write-Host "No Container Registry found. Creating a new registry..."
     $registryName = "adhd2e-registry"
     doctl registry create $registryName
@@ -131,45 +131,54 @@ if ($registries.Count -eq 0) {
         Print-Status "Failed to create Container Registry" $false
     }
     Print-Status "Container Registry created successfully" $true
+} else {
+    Write-Host "Using existing Container Registry"
 }
 
-# Create Spaces for backups if it doesn't exist
-Write-Host "Checking for existing Spaces..."
-$spaces = doctl compute volume list --format Name --no-header
-if ($spaces.Count -eq 0) {
-    Write-Host "No Spaces found. Creating a new Space for backups..."
-    $spaceName = "adhd2e-backups"
-    doctl compute volume create $spaceName --size 10GiB --region $region
+# Create block storage volume for backups if it doesn't exist
+Write-Host "Checking for existing block storage volume for backups..."
+$volumes = doctl compute volume list --format Name,Region --no-header
+$backupVolume = $volumes | Where-Object { $_ -match 'adhd2e-backups' }
+if (-not $backupVolume) {
+    Write-Host "No backup volume found. Creating a new block storage volume for backups..."
+    $volumeName = "adhd2e-backups"
+    doctl compute volume create $volumeName --region $region --size 10GiB
     if ($LASTEXITCODE -ne 0) {
-        Print-Status "Failed to create Space for backups" $false
+        Print-Status "Failed to create block storage volume for backups" $false
     }
-    Print-Status "Space for backups created successfully" $true
+    Print-Status "Block storage volume for backups created successfully" $true
+} else {
+    Write-Host "Using existing block storage volume for backups"
 }
 
 # Create managed MongoDB database if it doesn't exist
 Write-Host "Checking for existing MongoDB database..."
 $mongoDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'mongodb' }
-if ($mongoDbs.Count -eq 0) {
+if (-not $mongoDbs) {
     Write-Host "No MongoDB database found. Creating a new managed MongoDB database..."
     $dbName = "adhd2e-mongodb"
-    doctl databases create $dbName --engine mongodb --region $region
+    doctl databases create $dbName --engine mongodb --region $region --size db-s-1vcpu-1gb --num-nodes 1
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create managed MongoDB database" $false
     }
     Print-Status "Managed MongoDB database created successfully" $true
+} else {
+    Write-Host "Using existing MongoDB database"
 }
 
 # Create managed Neo4j database if it doesn't exist
 Write-Host "Checking for existing Neo4j database..."
 $neo4jDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'neo4j' }
-if ($neo4jDbs.Count -eq 0) {
+if (-not $neo4jDbs) {
     Write-Host "No Neo4j database found. Creating a new managed Neo4j database..."
     $neo4jName = "adhd2e-neo4j"
-    doctl databases create $neo4jName --engine neo4j --region $region
+    doctl databases create $neo4jName --engine neo4j --region $region --size db-s-1vcpu-1gb --num-nodes 1
     if ($LASTEXITCODE -ne 0) {
         Print-Status "Failed to create managed Neo4j database" $false
     }
     Print-Status "Managed Neo4j database created successfully" $true
+} else {
+    Write-Host "Using existing Neo4j database"
 }
 
 # Build and push Docker images
