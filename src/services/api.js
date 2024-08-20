@@ -9,7 +9,6 @@ const api = axios.create({
   },
 });
 
-// Add a request interceptor to include the auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
@@ -21,7 +20,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -36,7 +34,6 @@ api.interceptors.response.use(
         originalRequest.headers['Authorization'] = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, logout the user
         localStorage.removeItem('authToken');
         localStorage.removeItem('refreshToken');
         window.location.href = '/login';

@@ -58,7 +58,6 @@ class AIService {
   }
 
   async getChatResponse(userId, message) {
-    // First, retrieve user context from Neo4j
     const session = this.driver.session();
     try {
       const result = await session.run(
@@ -75,10 +74,7 @@ class AIService {
       );
 
       const userContext = result.records[0].toObject();
-
-      // Now, use the AIML Custom Model to generate a response
       const response = await this.aimlModel.generateResponse(message, userContext);
-
       return response;
     } finally {
       await session.close();
