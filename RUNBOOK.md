@@ -6,6 +6,7 @@
    - Ensure you have Docker and Docker Compose installed on your deployment machine.
    - Make sure you have access to the project's GitHub repository.
    - Verify that you have the necessary credentials for DigitalOcean.
+   - For Windows users, ensure you have PowerShell 5.1 or later installed.
 
 2. Environment Setup:
    - Clone the repository: `git clone https://github.com/your-repo/adhd2e-ai-agent.git`
@@ -14,8 +15,11 @@
    - Fill in all the required environment variables in the `.env` file.
 
 3. Build and Deploy:
-   - Run the deployment script: `./deploy.sh`
-   - This script will:
+   - For Unix-based systems (Linux/macOS):
+     Run the deployment script: `./deploy.sh`
+   - For Windows:
+     Run the deployment script: `.\deploy.ps1`
+   - These scripts will:
      - Create a Kubernetes cluster on DigitalOcean
      - Set up a Container Registry
      - Build and push Docker images
