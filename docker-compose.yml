@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - frontend-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - task-service
+      - profile-service
+      - ai-service
+      - analytics-service
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - TASK_SERVICE_URL=http://task-service:3002
+      - PROFILE_SERVICE_URL=http://profile-service:3003
+      - AI_SERVICE_URL=http://ai-service:3004
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3005
+    networks:
+      - frontend-network
+      - backend-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth-service
+    depends_on:
+      - supabase
+    environment:
+      - SUPABASE_URL=http://supabase:8000
+      - SUPABASE_KEY=your-supabase-key
+    networks:
+      - backend-network
+
+  task-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.task-service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/tasks
+    networks:
+      - backend-network
+
+  profile-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.profile-service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/profiles
+    networks:
+      - backend-network
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.ai-service
+    depends_on:
+      - neo4j
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=your-neo4j-password
+    networks:
+      - backend-network
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.analytics-service
+    depends_on:
+      - mongodb
+      - neo4j
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/analytics
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=your-neo4j-password
+    networks:
+      - backend-network
+
+  supabase:
+    image: supabase/supabase-postgres:14.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_PASSWORD=your-postgres-password
+    volumes:
+      - supabase-data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+  mongodb:
+    image: mongo:5.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - backend-network
+
+  neo4j:
+    image: neo4j:4.4
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/your-neo4j-password
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - backend-network
+
+networks:
+  frontend-network:
+  backend-network:
+
+volumes:
+  supabase-data:
+  mongodb-data:
+  neo4j-data:
