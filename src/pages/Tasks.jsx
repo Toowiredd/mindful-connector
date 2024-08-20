@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService } from '../services/api';
+import { pushNotificationService } from '../services/pushNotificationService';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from 'sonner';
@@ -15,12 +16,17 @@ const Tasks = () => {
     queryFn: taskService.getTasks,
   });
 
+  useEffect(() => {
+    pushNotificationService.requestPermission();
+  }, []);
+
   const createTaskMutation = useMutation({
     mutationFn: taskService.createTask,
-    onSuccess: () => {
+    onSuccess: (newTask) => {
       queryClient.invalidateQueries(['tasks']);
       toast.success('Task created successfully');
       setNewTaskTitle('');
+      scheduleTaskReminder(newTask);
     },
     onError: () => {
       toast.error('Failed to create task');
@@ -64,6 +70,15 @@ const Tasks = () => {
     if (window.confirm('Are you sure you want to delete this task?')) {
       deleteTaskMutation.mutate(id);
     }
+  };
+
+  const scheduleTaskReminder = (task) => {
+    const reminderTime = 1000 * 60 * 60; // 1 hour
+    pushNotificationService.scheduleNotification(
+      'Task Reminder',
+      { body: `Don't forget to work on your task: ${task.title}` },
+      reminderTime
+    );
   };
 
   if (isLoading) return <div aria-live="polite">Loading tasks...</div>;
