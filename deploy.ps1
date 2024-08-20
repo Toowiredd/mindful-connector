@@ -168,24 +168,15 @@ if (-not $mongoDbs) {
     Write-Host "Using existing MongoDB database"
 }
 
-# Create managed Neo4j database if it doesn't exist
+# Check for existing Neo4j database
 Write-Host "Checking for existing Neo4j database..."
 $neo4jDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'neo4j' }
 if (-not $neo4jDbs) {
-    Write-Host "No Neo4j database found. Creating a new managed Neo4j database..."
-    $neo4jName = "adhd2e-neo4j"
-    $neo4jRegion = "nyc1"  # Specify the region here
-    $neo4jVersion = "5"  # Specify the Neo4j major version
-    doctl databases create $neo4jName --engine neo4j --version $neo4jVersion --region $neo4jRegion --size db-s-1vcpu-1gb --num-nodes 1
-    if ($LASTEXITCODE -ne 0) {
-        Print-Status "Failed to create managed Neo4j database" $false
-        Write-Host "Error details:"
-        doctl databases create $neo4jName --engine neo4j --version $neo4jVersion --region $neo4jRegion --size db-s-1vcpu-1gb --num-nodes 1 --verbose
-        Write-Host "Available database engines:"
-        doctl databases options engines
-        exit 1
-    }
-    Print-Status "Managed Neo4j database created successfully" $true
+    Write-Host "Warning: No Neo4j database found. Neo4j database creation is currently not supported." -ForegroundColor Yellow
+    Write-Host "Please create a Neo4j database manually through the DigitalOcean control panel." -ForegroundColor Yellow
+    Write-Host "After creating the database, update the .env file with the Neo4j connection details." -ForegroundColor Yellow
+    Write-Host "Then run this script again to continue the deployment process." -ForegroundColor Yellow
+    exit 1
 } else {
     Write-Host "Using existing Neo4j database"
 }
