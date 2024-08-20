@@ -60,22 +60,20 @@ if ($LASTEXITCODE -ne 0) {
 
 Print-Status "DigitalOcean CLI authentication verified" $true
 
-# Get Kubernetes cluster info
-Write-Host "Fetching Kubernetes cluster info..."
+# Create Kubernetes cluster if it doesn't exist
+Write-Host "Checking for existing Kubernetes cluster..."
 $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
 if ($clusters.Count -eq 0) {
-    Write-Host "No Kubernetes clusters found. Would you like to create one? (Y/N)"
-    $createCluster = Read-Host
-    if ($createCluster -eq 'Y' -or $createCluster -eq 'y') {
-        $clusterName = Read-Host "Enter a name for your new cluster"
-        $region = Read-Host "Enter the region for your cluster (e.g., nyc1, sfo2, lon1)"
-        Write-Host "Creating Kubernetes cluster..."
-        doctl kubernetes cluster create $clusterName --region $region
-        $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
-    } else {
-        Write-Error "No Kubernetes clusters found. Please create a cluster first."
-        exit 1
+    Write-Host "No Kubernetes cluster found. Creating a new cluster..."
+    $clusterName = "adhd2e-cluster"
+    $region = "nyc1"
+    Write-Host "Creating Kubernetes cluster '$clusterName' in region '$region'..."
+    doctl kubernetes cluster create $clusterName --region $region
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Failed to create Kubernetes cluster" $false
     }
+    Print-Status "Kubernetes cluster created successfully" $true
+    $clusters = doctl kubernetes cluster list --format ID,Name,Region --no-header
 }
 
 $clusterID = ($clusters -split '\s+')[0]
@@ -96,6 +94,58 @@ if ($LASTEXITCODE -ne 0) {
     Print-Status "Failed to connect to Kubernetes cluster" $false
 }
 Print-Status "Connected to Kubernetes cluster" $true
+
+# Create Container Registry if it doesn't exist
+Write-Host "Checking for existing Container Registry..."
+$registries = doctl registry list --format Registry --no-header
+if ($registries.Count -eq 0) {
+    Write-Host "No Container Registry found. Creating a new registry..."
+    $registryName = "adhd2e-registry"
+    doctl registry create $registryName
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Failed to create Container Registry" $false
+    }
+    Print-Status "Container Registry created successfully" $true
+}
+
+# Create Spaces for backups if it doesn't exist
+Write-Host "Checking for existing Spaces..."
+$spaces = doctl spaces list --format Name --no-header
+if ($spaces.Count -eq 0) {
+    Write-Host "No Spaces found. Creating a new Space for backups..."
+    $spaceName = "adhd2e-backups"
+    doctl spaces create $spaceName --region $region
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Failed to create Space for backups" $false
+    }
+    Print-Status "Space for backups created successfully" $true
+}
+
+# Create managed MongoDB database if it doesn't exist
+Write-Host "Checking for existing MongoDB database..."
+$mongoDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'mongodb' }
+if ($mongoDbs.Count -eq 0) {
+    Write-Host "No MongoDB database found. Creating a new managed MongoDB database..."
+    $dbName = "adhd2e-mongodb"
+    doctl databases create $dbName --engine mongodb --region $region
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Failed to create managed MongoDB database" $false
+    }
+    Print-Status "Managed MongoDB database created successfully" $true
+}
+
+# Create managed Neo4j database if it doesn't exist
+Write-Host "Checking for existing Neo4j database..."
+$neo4jDbs = doctl databases list --format ID,Name,Engine --no-header | Where-Object { $_ -match 'neo4j' }
+if ($neo4jDbs.Count -eq 0) {
+    Write-Host "No Neo4j database found. Creating a new managed Neo4j database..."
+    $neo4jName = "adhd2e-neo4j"
+    doctl databases create $neo4jName --engine neo4j --region $region
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Failed to create managed Neo4j database" $false
+    }
+    Print-Status "Managed Neo4j database created successfully" $true
+}
 
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
