@@ -71,13 +71,34 @@ Print-Status "kubectl configuration" $?
 
 # Check Kubernetes cluster connection
 Write-Host "Checking Kubernetes cluster connection..."
-$clusterCheck = kubectl cluster-info
+$clusterInfo = kubectl cluster-info
+$clusterNodes = kubectl get nodes
+$kubeConfig = kubectl config view --raw
+
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to connect to Kubernetes cluster. Please check your cluster configuration and try again."
-    Write-Host "Cluster info output:"
-    Write-Host $clusterCheck
+    Write-Host "Debugging information:"
+    Write-Host "1. Cluster Info:"
+    Write-Host $clusterInfo
+    Write-Host "2. Cluster Nodes:"
+    Write-Host $clusterNodes
+    Write-Host "3. Current Kube Config:"
+    Write-Host $kubeConfig
+    Write-Host "4. DigitalOcean Cluster List:"
+    doctl kubernetes cluster list
+    Write-Host "5. Current Kubernetes Context:"
+    kubectl config current-context
+    Write-Host "Please ensure that you have created a Kubernetes cluster in DigitalOcean and that your kubeconfig is correctly set up."
+    Write-Host "You can update your kubeconfig using: doctl kubernetes cluster kubeconfig save <cluster-name>"
     exit 1
 }
+
+Write-Host "Successfully connected to Kubernetes cluster."
+Write-Host "Cluster Info:"
+Write-Host $clusterInfo
+Write-Host "Cluster Nodes:"
+Write-Host $clusterNodes
+
 Print-Status "Kubernetes cluster connection" $true
 
 # Build and push Docker images
