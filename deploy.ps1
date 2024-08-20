@@ -227,15 +227,56 @@ if ($LASTEXITCODE -ne 0) {
 }
 Print-Status "Neo4j deployment and service created successfully" $true
 
+# Wait for Neo4j pod to be ready
+Write-Host "Waiting for Neo4j pod to be ready..."
+$timeout = 300 # 5 minutes timeout
+$startTime = Get-Date
+$neo4jReady = $false
+
+while (-not $neo4jReady) {
+    $neo4jPod = kubectl get pods -l app=neo4j -o jsonpath="{.items[0].metadata.name}"
+    $podStatus = kubectl get pod $neo4jPod -o jsonpath="{.status.phase}"
+    
+    if ($podStatus -eq "Running") {
+        $containerReady = kubectl get pod $neo4jPod -o jsonpath="{.status.containerStatuses[0].ready}"
+        if ($containerReady -eq "true") {
+            $neo4jReady = $true
+        }
+    }
+    
+    if (-not $neo4jReady) {
+        $elapsedTime = (Get-Date) - $startTime
+        if ($elapsedTime.TotalSeconds -gt $timeout) {
+            Print-Status "Timeout waiting for Neo4j pod to be ready" $false
+            exit 1
+        }
+        Start-Sleep -Seconds 5
+    }
+}
+
+Print-Status "Neo4j pod is ready" $true
+
 # Check Neo4j connection
 Write-Host "Checking Neo4j connection..."
-$neo4jPod = kubectl get pods -l app=neo4j -o jsonpath="{.items[0].metadata.name}"
-$neo4jStatus = kubectl exec $neo4jPod -- cypher-shell -u neo4j -p "$env:NEO4J_PASSWORD" "RETURN 1 AS result"
+$retryCount = 0
+$maxRetries = 5
 
-if ($neo4jStatus -match "1 row") {
-    Print-Status "Neo4j is functioning correctly" $true
-} else {
-    Print-Status "Neo4j connection failed" $false
+while ($retryCount -lt $maxRetries) {
+    try {
+        $neo4jStatus = kubectl exec $neo4jPod -- cypher-shell -u neo4j -p "$env:NEO4J_PASSWORD" "RETURN 1 AS result"
+        if ($neo4jStatus -match "1 row") {
+            Print-Status "Neo4j is functioning correctly" $true
+            break
+        }
+    } catch {
+        $retryCount++
+        if ($retryCount -eq $maxRetries) {
+            Print-Status "Neo4j connection failed after $maxRetries attempts" $false
+            exit 1
+        }
+        Write-Host "Retrying Neo4j connection check in 10 seconds... (Attempt $retryCount of $maxRetries)"
+        Start-Sleep -Seconds 10
+    }
 }
 
 # Update the application's Neo4j connection details
