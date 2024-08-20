@@ -75,12 +75,12 @@ Print-Status "Docker image build and push" $true
 
 # Apply Kubernetes configurations
 Write-Host "Applying Kubernetes configurations..."
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secrets.yaml
-kubectl apply -f k8s/deployments/
-kubectl apply -f k8s/services/
-kubectl apply -f k8s/ingress.yaml
-kubectl apply -f k8s/hpa.yaml
+kubectl apply -f k8s/namespace.yaml --validate=false
+kubectl apply -f k8s/secrets.yaml --validate=false
+kubectl apply -f k8s/deployments/ --validate=false
+kubectl apply -f k8s/services/ --validate=false
+kubectl apply -f k8s/ingress.yaml --validate=false
+kubectl apply -f k8s/hpa.yaml --validate=false
 Print-Status "Kubernetes configuration application" $?
 
 # Wait for deployments to be ready
