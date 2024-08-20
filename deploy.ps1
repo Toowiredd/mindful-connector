@@ -118,10 +118,15 @@ Write-Host "Applying Kubernetes configurations..."
 $kubeApplySuccess = $true
 
 function Apply-KubeConfig($file) {
+    Write-Host "Applying $file..."
     kubectl apply -f $file --validate=false
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Failed to apply $file" -ForegroundColor Yellow
         $script:kubeApplySuccess = $false
+        Write-Host "Error details:"
+        kubectl apply -f $file --validate=false --v=8
+    } else {
+        Write-Host "Successfully applied $file" -ForegroundColor Green
     }
 }
 
@@ -132,11 +137,15 @@ Get-ChildItem "k8s/services" -Filter *.yaml | ForEach-Object { Apply-KubeConfig 
 Apply-KubeConfig "k8s/ingress.yaml"
 Apply-KubeConfig "k8s/hpa.yaml"
 
-Print-Status "Kubernetes configuration application" $kubeApplySuccess
-
 if (-not $kubeApplySuccess) {
     Write-Host "Warning: Some Kubernetes configurations were applied with validation disabled. Please review your Kubernetes YAML files for potential issues." -ForegroundColor Yellow
+    Write-Host "Attempting to get more information about the cluster and its API resources..."
+    kubectl api-resources
+    kubectl get apiservices
+    exit 1
 }
+
+Print-Status "Kubernetes configuration application" $kubeApplySuccess
 
 # Wait for deployments to be ready
 Write-Host "Waiting for deployments to be ready..."
