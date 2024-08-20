@@ -1,13 +1,15 @@
 import axios from 'axios';
+import rateLimit from 'axios-rate-limit';
+import { encrypt, decrypt } from './encryption';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://api.adhd2e.com';
 
-const api = axios.create({
+const api = rateLimit(axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-});
+}), { maxRequests: 100, perMilliseconds: 60000 });
 
 api.interceptors.request.use(
   (config) => {
@@ -15,13 +17,21 @@ api.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    if (config.data && config.url !== '/auth/login') {
+      config.data = encrypt(JSON.stringify(config.data));
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && typeof response.data === 'string') {
+      response.data = JSON.parse(decrypt(response.data));
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     if (error.response.status === 401 && !originalRequest._retry) {
@@ -74,6 +84,10 @@ export const aiService = {
 export const analyticsService = {
   getUserAnalytics: () => api.get('/analytics/user'),
   getSystemAnalytics: () => api.get('/analytics/system'),
+};
+
+export const feedbackService = {
+  submitFeedback: (feedback) => api.post('/feedback', feedback),
 };
 
 export default api;

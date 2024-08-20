@@ -6,11 +6,14 @@ import ResponsiveLayout from '../components/ResponsiveLayout';
 const TaskList = lazy(() => import('../components/TaskList'));
 const AIRecommendations = lazy(() => import('../components/AIAgent/AIRecommendations'));
 const TaskChart = lazy(() => import('../components/DataVisualization/TaskChart'));
+const FeedbackForm = lazy(() => import('../components/FeedbackForm'));
 
 const Dashboard = () => {
   const { data: tasks, isLoading, error } = useQuery({
     queryKey: ['tasks'],
     queryFn: taskService.getTasks,
+    staleTime: 60000, // 1 minute
+    cacheTime: 300000, // 5 minutes
   });
 
   if (isLoading) return <div aria-live="polite">Loading dashboard...</div>;
@@ -30,6 +33,9 @@ const Dashboard = () => {
           <AIRecommendations />
         </Suspense>
       </div>
+      <Suspense fallback={<div>Loading feedback form...</div>}>
+        <FeedbackForm />
+      </Suspense>
     </ResponsiveLayout>
   );
 };

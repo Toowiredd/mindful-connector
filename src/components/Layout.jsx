@@ -1,10 +1,17 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
+import { Helmet } from 'react-helmet';
 
 const Layout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <Helmet>
+        <meta charSet="utf-8" />
+        <title>ADHD 2e AI Agent System</title>
+        <meta name="description" content="AI-powered assistant for managing ADHD and leveraging unique abilities" />
+        <link rel="canonical" href="https://adhd2e.com" />
+      </Helmet>
       <header className="bg-primary text-primary-foreground p-4">
         <nav className="flex justify-between items-center">
           <ul className="flex space-x-4">

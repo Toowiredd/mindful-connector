@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { aiService } from '../../services/api';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Lightbulb, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { decrypt } from '../../services/encryption';
 
 const AIRecommendations = () => {
   const [chatMessage, setChatMessage] = useState('');
@@ -13,6 +14,8 @@ const AIRecommendations = () => {
   const { data: recommendations, isLoading, error } = useQuery({
     queryKey: ['personalizedRecommendations'],
     queryFn: aiService.getPersonalizedRecommendations,
+    staleTime: 300000, // 5 minutes
+    cacheTime: 600000, // 10 minutes
   });
 
   const feedbackMutation = useMutation({
@@ -60,13 +63,13 @@ const AIRecommendations = () => {
       {recommendations.map((rec) => (
         <Card key={rec.id} className="transition-shadow hover:shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">{rec.title}</CardTitle>
+            <CardTitle className="text-xl">{decrypt(rec.title)}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 dark:text-gray-300">{rec.description}</p>
+            <p className="text-gray-600 dark:text-gray-300">{decrypt(rec.description)}</p>
             {rec.actionItem && (
               <div className="mt-2">
-                <strong>Suggested Action:</strong> {rec.actionItem}
+                <strong>Suggested Action:</strong> {decrypt(rec.actionItem)}
               </div>
             )}
           </CardContent>
