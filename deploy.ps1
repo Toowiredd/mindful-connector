@@ -81,7 +81,12 @@ kubectl apply -f k8s/deployments/ --validate=false
 kubectl apply -f k8s/services/ --validate=false
 kubectl apply -f k8s/ingress.yaml --validate=false
 kubectl apply -f k8s/hpa.yaml --validate=false
-Print-Status "Kubernetes configuration application" $?
+$kubeApplySuccess = $?
+Print-Status "Kubernetes configuration application" $kubeApplySuccess
+
+if (-not $kubeApplySuccess) {
+    Write-Host "Warning: Kubernetes configurations were applied with validation disabled. Please review your Kubernetes YAML files for potential issues."
+}
 
 # Wait for deployments to be ready
 Write-Host "Waiting for deployments to be ready..."
