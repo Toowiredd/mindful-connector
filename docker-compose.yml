@@ -40,87 +40,135 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.auth-service
+    ports:
+      - "3001:3001"
     depends_on:
       - supabase
     environment:
       - SUPABASE_URL=http://supabase:8000
-      - SUPABASE_KEY=your-supabase-key
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   task-service:
     build:
       context: .
       dockerfile: Dockerfile.task-service
+    ports:
+      - "3002:3002"
     depends_on:
       - mongodb
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/tasks
+      - MONGODB_URI=mongodb://appuser:apppassword@mongodb:27017/adhd2e_db
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   profile-service:
     build:
       context: .
       dockerfile: Dockerfile.profile-service
+    ports:
+      - "3003:3003"
     depends_on:
       - mongodb
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/profiles
+      - MONGODB_URI=mongodb://appuser:apppassword@mongodb:27017/adhd2e_db
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   ai-service:
     build:
       context: .
       dockerfile: Dockerfile.ai-service
+    ports:
+      - "3004:3004"
     depends_on:
       - neo4j
     environment:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=your-neo4j-password
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   analytics-service:
     build:
       context: .
       dockerfile: Dockerfile.analytics-service
+    ports:
+      - "3005:3005"
     depends_on:
       - mongodb
       - neo4j
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/analytics
+      - MONGODB_URI=mongodb://appuser:apppassword@mongodb:27017/adhd2e_db
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=your-neo4j-password
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   graph-service:
     build:
       context: .
       dockerfile: Dockerfile.graph-service
+    ports:
+      - "3006:3006"
     depends_on:
       - neo4j
     environment:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=your-neo4j-password
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   supabase:
     image: supabase/supabase-postgres:14.1.0
     ports:
       - "8000:8000"
     environment:
-      - POSTGRES_PASSWORD=your-postgres-password
+      - POSTGRES_PASSWORD=${SUPABASE_DB_PASSWORD}
     volumes:
       - supabase-data:/var/lib/postgresql/data
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongodb:
     build:
@@ -133,7 +181,7 @@ services:
       - ./mongo-backups:/backups
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=secretpassword
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     networks:
       - backend-network
     healthcheck:
@@ -150,11 +198,16 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      - NEO4J_AUTH=neo4j/your-neo4j-password
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
     volumes:
       - neo4j-data:/data
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "MATCH () RETURN count(*) as count"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   frontend-network:
