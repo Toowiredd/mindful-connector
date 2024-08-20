@@ -3,7 +3,7 @@ import rateLimit from 'axios-rate-limit';
 import { encrypt, decrypt } from './encryption';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.adhd2e.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const api = rateLimit(axios.create({
   baseURL: API_BASE_URL,
@@ -88,6 +88,10 @@ export const aiService = {
     }))
   })),
   submitFeedback: (feedback) => api.post('/ai/feedback', feedback),
+};
+
+export const neo4jService = {
+  runQuery: (query, params) => api.post('/neo4j/query', { query, params }),
 };
 
 export default api;
