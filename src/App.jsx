@@ -9,13 +9,27 @@ import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./components/ThemeProvider";
 import SkipToContent from "./components/SkipToContent";
+import { testNeo4jConnection } from "./services/neo4jService";
+import { useEffect } from "react";
 
 const Login = lazy(() => import("./components/Auth/Login"));
 const Register = lazy(() => import("./components/Auth/Register"));
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    testNeo4jConnection()
+      .then((isConnected) => {
+        if (isConnected) {
+          console.log('Successfully connected to Neo4j');
+        } else {
+          console.error('Failed to connect to Neo4j');
+        }
+      });
+  }, []);
+
+  return (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
@@ -42,5 +56,6 @@ const App = () => (
     </QueryClientProvider>
   </ErrorBoundary>
 );
+};
 
 export default App;

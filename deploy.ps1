@@ -217,6 +217,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 Print-Status "Neo4j deployment and service created successfully" $true
 
+# Check Neo4j connection
+Write-Host "Checking Neo4j connection..."
+$neo4jPod = kubectl get pods -l app=neo4j -o jsonpath="{.items[0].metadata.name}"
+$neo4jStatus = kubectl exec $neo4jPod -- cypher-shell -u neo4j -p "$env:NEO4J_PASSWORD" "RETURN 1 AS result"
+
+if ($neo4jStatus -match "1 row") {
+    Print-Status "Neo4j is functioning correctly" $true
+} else {
+    Print-Status "Neo4j connection failed" $false
+}
+
 # Update the application's Neo4j connection details
 Write-Host "Updating application's Neo4j connection details..."
 $neo4jServiceIp = kubectl get service neo4j -o jsonpath='{.spec.clusterIP}'
