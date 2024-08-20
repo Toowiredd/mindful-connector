@@ -231,15 +231,23 @@ Print-Status "Application's Neo4j connection details updated" $true
 
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
-docker-compose build
-if ($LASTEXITCODE -ne 0) {
-    Print-Status "Docker image build failed" $false
+$services = @("frontend", "api-gateway", "auth-service", "task-service", "profile-service", "ai-service", "analytics-service", "graph-service")
+
+foreach ($service in $services) {
+    Write-Host "Building $service image..."
+    docker build -t "$env:REGISTRY_NAME/$service`:latest" -f "Dockerfile.$service" .
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Docker image build failed for $service" $false
+    }
+    
+    Write-Host "Pushing $service image..."
+    docker push "$env:REGISTRY_NAME/$service`:latest"
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "Docker image push failed for $service" $false
+    }
 }
-docker-compose push
-if ($LASTEXITCODE -ne 0) {
-    Print-Status "Docker image push failed" $false
-}
-Print-Status "Docker image build and push" $true
+
+Print-Status "Docker images built and pushed successfully" $true
 
 # Apply Kubernetes configurations
 Write-Host "Applying Kubernetes configurations..."
