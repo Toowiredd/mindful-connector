@@ -106,7 +106,8 @@ if ($clusters.Count -eq 0) {
 
 # Update kubeconfig
 Write-Host "Updating kubeconfig..."
-doctl kubernetes cluster kubeconfig save $clusterName
+$clusterId = "f0033c36-df8a-40b3-a804-014f24902725"
+doctl kubernetes cluster kubeconfig save $clusterId
 if ($LASTEXITCODE -ne 0) {
     Print-Status "Failed to update kubeconfig" $false
 }
