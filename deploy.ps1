@@ -50,10 +50,18 @@ if (!(Test-DockerRunning)) {
     exit 1
 }
 
-# Authenticate with DigitalOcean
-Write-Host "Authenticating with DigitalOcean..."
-doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
-Print-Status "DigitalOcean authentication" $?
+# Check if doctl is already authenticated
+$doctlAuth = doctl auth list 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Authenticating with DigitalOcean..."
+    doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
+    if ($LASTEXITCODE -ne 0) {
+        Print-Status "DigitalOcean authentication failed" $false
+    }
+} else {
+    Write-Host "doctl is already authenticated."
+}
+Print-Status "DigitalOcean authentication" $true
 
 # Configure kubectl
 Write-Host "Configuring kubectl..."
