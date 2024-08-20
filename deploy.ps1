@@ -35,6 +35,21 @@ if (!(Get-Command kubectl -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+# Check if Docker is running
+function Test-DockerRunning {
+    try {
+        $null = docker info
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+if (!(Test-DockerRunning)) {
+    Write-Error "Docker is not running. Please start Docker Desktop and try again."
+    exit 1
+}
+
 # Authenticate with DigitalOcean
 Write-Host "Authenticating with DigitalOcean..."
 doctl auth init --access-token $env:DIGITALOCEAN_TOKEN
@@ -49,8 +64,14 @@ Print-Status "kubectl configuration" $?
 # Build and push Docker images
 Write-Host "Building and pushing Docker images..."
 docker-compose build
+if ($LASTEXITCODE -ne 0) {
+    Print-Status "Docker image build failed" $false
+}
 docker-compose push
-Print-Status "Docker image build and push" $?
+if ($LASTEXITCODE -ne 0) {
+    Print-Status "Docker image push failed" $false
+}
+Print-Status "Docker image build and push" $true
 
 # Apply Kubernetes configurations
 Write-Host "Applying Kubernetes configurations..."
