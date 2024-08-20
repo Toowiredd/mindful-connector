@@ -1,0 +1,18 @@
+# Use the official MongoDB image as the base image
+FROM mongo:5.0
+
+# Set environment variables
+ENV MONGO_INITDB_ROOT_USERNAME=admin
+ENV MONGO_INITDB_ROOT_PASSWORD=secretpassword
+
+# Create a directory for custom initialization scripts
+RUN mkdir -p /docker-entrypoint-initdb.d
+
+# Copy custom initialization scripts
+COPY ./mongo-init.js /docker-entrypoint-initdb.d/
+
+# Expose the default MongoDB port
+EXPOSE 27017
+
+# Set the command to run MongoDB with authentication and other security measures
+CMD ["mongod", "--auth", "--bind_ip_all", "--tlsMode", "preferTLS", "--wiredTigerCacheSizeGB", "1"]

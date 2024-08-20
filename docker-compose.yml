@@ -123,13 +123,26 @@ services:
       - backend-network
 
   mongodb:
-    image: mongo:5.0
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongodb-data:/data/db
+      - ./mongo-backups:/backups
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=secretpassword
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    command: ["mongod", "--auth", "--bind_ip_all", "--tlsMode", "preferTLS", "--wiredTigerCacheSizeGB", "1"]
 
   neo4j:
     image: neo4j:4.4
