@@ -1,9 +1,4 @@
-# DISABLED AUTO-RUN: Workflows disabled by commenting out workflow section
-# Converted to manual execution only - 2025-10-18
-# Backup available at: config.yml.backup
-# Note: CircleCI requires manual trigger via API or web UI
-
-# version: 2.1
+version: 2.1
 
 orbs:
   docker: circleci/docker@2.1.4
@@ -36,7 +31,7 @@ jobs:
           resource-file: k8s/services/frontend.yaml
           resource-name: service/frontend
 
-# workflows:
+workflows:
   version: 2
   build-deploy:
     jobs:
